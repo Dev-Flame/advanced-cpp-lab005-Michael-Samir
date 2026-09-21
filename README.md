@@ -178,3 +178,24 @@ make benchmark
 ```
 
 The goal is to understand performance, not to create complex problem statements. The assignment is intentionally simple so that students focus on observing the practical effects of algorithmic complexity.
+
+## Completed experiment
+
+The frequency map implementation counts values and chooses the smaller value
+when frequencies tie. Tests include empty inputs, single values, negative
+values, repeated values, integer limits, and larger arrays.
+
+The local benchmark uses sizes 1,000, 5,000, and 10,000 with five trials each.
+The maximum was reduced to 10,000 because the naive algorithms take quadratic
+time; running them on 100,000 or 1,000,000 would take much longer. The benchmark
+still accepts a larger maximum as its first argument and a trial count as its
+second argument. With no arguments it uses a maximum of 10,000 and three trials.
+
+```bash
+make test
+make build/benchmark_app
+./build/benchmark_app 10000 5 > docs/benchmark_results.csv
+```
+
+See [the report](docs/complexity.md) for complexity explanations and measured
+medians, and [the raw CSV](docs/benchmark_results.csv) for all five trials.

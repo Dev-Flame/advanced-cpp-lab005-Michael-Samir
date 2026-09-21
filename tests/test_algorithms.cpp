@@ -6,9 +6,40 @@
 #include "frequency.h"
 
 #include <chrono>
+#include <limits>
+#include <stdexcept>
 #include <vector>
 
 using namespace algorithm_lab;
+
+TEST_CASE("Empty frequency input throws and a single value is returned") {
+    REQUIRE_THROWS_AS(mostFrequentNaive({}), std::invalid_argument);
+    REQUIRE_THROWS_AS(mostFrequentEfficient({}), std::invalid_argument);
+    REQUIRE(mostFrequentNaive({-8}) == -8);
+    REQUIRE(mostFrequentEfficient({-8}) == -8);
+}
+
+TEST_CASE("Integer boundaries and ties work") {
+    int low = std::numeric_limits<int>::min();
+    int high = std::numeric_limits<int>::max();
+    std::vector<int> values = {high, low, high, low};
+    REQUIRE(mostFrequentNaive(values) == low);
+    REQUIRE(mostFrequentEfficient(values) == low);
+    REQUIRE(hasDuplicateNaive(values));
+    REQUIRE(hasDuplicateEfficient(values));
+    REQUIRE_FALSE(hasDuplicateNaive({low, 0, high}));
+    REQUIRE_FALSE(hasDuplicateEfficient({low, 0, high}));
+}
+
+TEST_CASE("Common elements handle empty sides and repeated negative values") {
+    std::vector<std::vector<int>> left = {{}, {1}, {1}, {-2, -2, -1, 0}, {1, 2}};
+    std::vector<std::vector<int>> right = {{1}, {}, {1}, {-2, -2, 0, 0}, {3, 4}};
+    std::vector<int> expected = {0, 0, 1, 2, 0};
+    for (std::size_t i = 0; i < left.size(); ++i) {
+        REQUIRE(countCommonDistinctNaive(left[i], right[i]) == expected[i]);
+        REQUIRE(countCommonDistinctEfficient(left[i], right[i]) == expected[i]);
+    }
+}
 
 namespace {
 using Clock = std::chrono::steady_clock;

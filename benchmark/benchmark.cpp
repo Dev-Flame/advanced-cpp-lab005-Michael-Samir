@@ -2,6 +2,7 @@
 #include <chrono>
 #include <functional>
 #include <iostream>
+#include <stdexcept>
 #include <vector>
 
 #include "common.h"
@@ -27,21 +28,11 @@ std::vector<int> buildFrequencyBenchmarkInput(std::size_t n) {
 }
 
 std::vector<int> buildCommonBenchmarkLeft(std::size_t n) {
-    std::vector<int> values;
-    values.reserve(n);
-    for (std::size_t i = 0; i < n; ++i) {
-        values.push_back(static_cast<int>(i) % 19);
-    }
-    return values;
+    return algorithm_lab::makeCommonInput(n, 0);
 }
 
 std::vector<int> buildCommonBenchmarkRight(std::size_t n) {
-    std::vector<int> values;
-    values.reserve(n);
-    for (std::size_t i = 0; i < n; ++i) {
-        values.push_back(static_cast<int>(i * 13) % 19);
-    }
-    return values;
+    return algorithm_lab::makeCommonInput(n, static_cast<int>(n / 2));
 }
 
 long long measure_ns(const std::function<void()>& fn) {
@@ -56,12 +47,15 @@ void emit_csv_row(const std::string& problem, const std::string& algorithm,
 }
 
 void benchmark_duplicate(std::size_t max_input_size, int trials) {
-    for (std::size_t n : {1000UL, 10000UL, 100000UL, 1000000UL}) {
+    for (std::size_t n : {1000UL, 5000UL, 10000UL, 100000UL, 1000000UL}) {
         if (n > max_input_size) {
             continue;
         }
 
         auto data = buildDuplicateBenchmarkInput(n);
+        if (algorithm_lab::hasDuplicateNaive(data) != algorithm_lab::hasDuplicateEfficient(data)) {
+            throw std::runtime_error("Duplicate results disagree");
+        }
         for (int trial = 1; trial <= trials; ++trial) {
             auto naive_ns = measure_ns([&]() {
                 volatile bool result = algorithm_lab::hasDuplicateNaive(data);
@@ -79,12 +73,15 @@ void benchmark_duplicate(std::size_t max_input_size, int trials) {
 }
 
 void benchmark_frequency(std::size_t max_input_size, int trials) {
-    for (std::size_t n : {1000UL, 10000UL, 100000UL, 1000000UL}) {
+    for (std::size_t n : {1000UL, 5000UL, 10000UL, 100000UL, 1000000UL}) {
         if (n > max_input_size) {
             continue;
         }
 
         auto data = buildFrequencyBenchmarkInput(n);
+        if (algorithm_lab::mostFrequentNaive(data) != algorithm_lab::mostFrequentEfficient(data)) {
+            throw std::runtime_error("Frequency results disagree");
+        }
         for (int trial = 1; trial <= trials; ++trial) {
             auto naive_ns = measure_ns([&]() {
                 volatile int result = algorithm_lab::mostFrequentNaive(data);
@@ -102,13 +99,17 @@ void benchmark_frequency(std::size_t max_input_size, int trials) {
 }
 
 void benchmark_common(std::size_t max_input_size, int trials) {
-    for (std::size_t n : {1000UL, 10000UL, 100000UL, 1000000UL}) {
+    for (std::size_t n : {1000UL, 5000UL, 10000UL, 100000UL, 1000000UL}) {
         if (n > max_input_size) {
             continue;
         }
 
         auto left = buildCommonBenchmarkLeft(n);
         auto right = buildCommonBenchmarkRight(n);
+        if (algorithm_lab::countCommonDistinctNaive(left, right) !=
+            algorithm_lab::countCommonDistinctEfficient(left, right)) {
+            throw std::runtime_error("Common element results disagree");
+        }
         for (int trial = 1; trial <= trials; ++trial) {
             auto naive_ns = measure_ns([&]() {
                 volatile int result = algorithm_lab::countCommonDistinctNaive(left, right);
@@ -128,7 +129,7 @@ void benchmark_common(std::size_t max_input_size, int trials) {
 }  // namespace
 
 int main(int argc, char** argv) {
-    std::size_t max_input_size = 100000UL;
+    std::size_t max_input_size = 10000UL;
     int trials = 3;
 
     if (argc >= 2) {

@@ -22,8 +22,8 @@ jobs:
       - name: Build project
         run: make
 
-      - name: Run main program (optional)
-        run: ./build/main
+      - name: Run benchmark sanity check
+        run: make benchmark
 
       - name: Run tests
         run: make test

@@ -1,114 +1,89 @@
 # Complexity Analysis and Performance Report
 
-This lab compares two correct approaches to the same problem. The goal is not simply to get the right answer, but to observe how algorithmic design changes runtime.
+## Duplicate detection
 
-The benchmark output is written in CSV format and can be analyzed in Python, Excel, or a plotting tool.
+The naive version compares each value with the values after it. It returns as
+soon as it finds a match. In the worst case there are no duplicates, so it does
+about n * (n - 1) / 2 comparisons. Time is O(n^2) and extra space is O(1).
 
-## Tie-breaking rule for the frequency problem
+The efficient version stores values in an unordered_set. If insertion says the
+value already exists, it returns true. Average time is O(n) and extra space is
+O(n). An early duplicate can make either version finish much sooner.
 
-When two values have the same frequency, the implementation returns the smaller numeric value.
+## Most frequent value
 
-This rule is used in both the naive and efficient implementations so the results are comparable.
+The naive version counts a value by scanning the whole array, and repeats this
+for every value. Time is O(n^2) and extra space is O(1).
 
-## Problem 1 — Duplicate detection
+The efficient version uses an unordered_map to count each value. It then checks
+the map for the largest count. Average time is O(n) and extra space is O(n),
+or more precisely O(d) for d different values. Both versions choose the smaller
+value when counts tie. Both throw invalid_argument for an empty array because
+there is no value to return.
 
-### Algorithm A: Brute force
+## Common distinct elements
 
-- Description: compare every pair of values in the array.
-- Time complexity: O(n^2)
-- Space complexity: O(1)
-- Why: for each of n values, the code may compare against up to n - 1 other values.
+Let n be the left array size and m be the right array size. The naive version
+scans the right array for each left value. It keeps a vector of values already
+counted so repeated values only count once. There can be at most m values in
+that vector, so the extra scan still fits O(n * m) time for nonempty arrays.
+Extra space is O(k), where k is the number of distinct common values. With an
+empty right array, the code still visits the n left values, taking O(n).
 
-### Algorithm B: Hash set
+The efficient version puts the right values into an unordered_set and checks
+each left value. A second set prevents counting a common value twice. Average
+time is O(n + m) and extra space is O(m), since k is at most m.
 
-- Description: insert each value into a hash set; if a value is already present, a duplicate exists.
-- Time complexity: O(n) average case
-- Space complexity: O(n)
-- Why: each value is inserted and looked up in expected constant time.
+Hash operations take constant time on average. With many collisions, duplicate
+and frequency processing can take O(n^2), and common-element processing can
+take O((n + m)^2) as a loose worst-case bound.
 
-### Experimental comparison
+## Local benchmark
 
-1. The efficient implementation is usually faster for large inputs.
-2. As input size increases, the brute-force approach grows quadratically.
-3. The measured timing should agree with the theoretical prediction.
-4. The gap becomes larger because O(n^2) grows much faster than O(n).
-5. The faster method uses extra memory for the hash table.
+These are actual measurements on Windows with an AMD Ryzen 7 9700X and
+w64devkit GCC 16.2.0. The Makefile's default flags were used (C++17, warnings,
+no optimization flag). Run correctness tests before collecting timings:
 
-```mermaid
-xychart-beta
-    title Problem 1: Input Size vs Execution Time
-    x-axis [1000, 10000, 100000, 1000000]
-    y-axis "Time (ms)" 0 --> 5000
-    line [0.5, 45, 2500, 5000] "Brute Force"
-    line [0.1, 1, 10, 50] "Hash Set"
+```bash
+make test
+make build/benchmark_app
+./build/benchmark_app 10000 5 > docs/benchmark_results.csv
 ```
 
-## Problem 2 — Most frequent value
+Each table entry is the median of five trials, in milliseconds. Raw nanosecond
+measurements are in [benchmark_results.csv](benchmark_results.csv).
 
-### Algorithm A: Naive counting
+| Problem | Input size | Naive (ms) | Efficient (ms) |
+| --- | ---: | ---: | ---: |
+| Duplicate | 1,000 | 1.956 | 0.081 |
+| Duplicate | 5,000 | 49.277 | 0.461 |
+| Duplicate | 10,000 | 196.716 | 0.903 |
+| Frequency | 1,000 | 2.448 | 0.026 |
+| Frequency | 5,000 | 60.974 | 0.127 |
+| Frequency | 10,000 | 243.815 | 0.263 |
+| Common | 1,000 | 0.507 | 0.150 |
+| Common | 5,000 | 12.231 | 0.822 |
+| Common | 10,000 | 48.788 | 1.600 |
 
-- Description: for each value, scan the whole array and count occurrences.
-- Time complexity: O(n^2)
-- Space complexity: O(1)
-- Why: each value may require a full pass through the array.
+Duplicate inputs have no duplicates, which forces the full pair scan. Frequency
+inputs repeat seven values. Common inputs are two equal-sized arrays of unique
+values, with half of their values overlapping; input_size is the size of each
+array. This avoids always finding matches near the beginning of the right array.
 
-### Algorithm B: Hash table counts
+The benchmark checks that the two answers agree before timing each input.
+Data creation, correctness checks, and CSV printing are outside the timed block.
+It uses steady_clock and keeps each result in a volatile variable so the call's
+result is used. The small timing helper adds some overhead to every measurement.
 
-- Description: count frequencies in one pass and then inspect the counts.
-- Time complexity: O(n) average case
-- Space complexity: O(n)
-- Why: hash table operations are expected to be constant time per value.
+## What the results show
 
-### Experimental comparison
+From 1,000 to 10,000 elements, the naive times grew about 100 times. The hash
+versions grew about 10 to 11 times. At 10,000 elements the hash versions were
+about 218 times faster for duplicates, 927 times faster for frequency, and
+30 times faster for common elements. This agrees with quadratic versus linear
+growth for these inputs. The extra memory avoids repeated scans.
 
-1. The hash-based solution is expected to win for large arrays.
-2. The gap becomes much more obvious as n grows.
-3. The empirical results should trend toward the theoretical expectations.
-4. The brute-force approach has a larger work count because it rescans the entire array for each candidate value.
-5. The faster algorithm uses more memory to store the frequency table.
-
-```mermaid
-xychart-beta
-    title Problem 2: Input Size vs Execution Time
-    x-axis [1000, 10000, 100000, 1000000]
-    y-axis "Time (ms)" 0 --> 5000
-    line [0.8, 70, 4200, 5000] "Naive Count"
-    line [0.1, 1, 12, 60] "Hash Counts"
-```
-
-## Problem 3 — Common elements between two arrays
-
-### Algorithm A: Naive scan
-
-- Description: take each value from the first array and scan the second array to see whether it appears there.
-- Time complexity: O(n × m)
-- Space complexity: O(k), where k is the number of distinct values found in common
-- Why: each of the n values in the first array may require checking all m values in the second.
-
-### Algorithm B: Hash-based lookup
-
-- Description: construct a hash set from the second array, then examine each value in the first array.
-- Time complexity: O(n + m) average case
-- Space complexity: O(m)
-- Why: set construction and lookup are each expected constant time per element.
-
-### Experimental comparison
-
-1. The hash-based solution is faster for large inputs.
-2. The difference grows with the size of both arrays.
-3. The observed data should align with the expected O(n + m) versus O(n × m) behavior.
-4. The gap widens because the naive approach repeats the same work many times.
-5. The faster method trades extra memory for speed.
-
-```mermaid
-xychart-beta
-    title Problem 3: Input Size vs Execution Time
-    x-axis [1000, 10000, 100000, 1000000]
-    y-axis "Time (ms)" 0 --> 5000
-    line [1.0, 90, 5000, 5000] "Naive Scan"
-    line [0.1, 2, 14, 100] "Hash Lookup"
-```
-
-## Observations
-
-The efficient versions are empirically faster because they reduce repeated work. The naive versions do the same comparisons again and again, which scales poorly as input size increases. The faster algorithm usually uses extra memory, which is the standard tradeoff in algorithm design.
+The experiment stops at 10,000 because the naive algorithms get slow quickly.
+A million elements would require roughly 10,000 times the work of 10,000
+for a quadratic algorithm. Timings depend on the machine, compiler options,
+input data, and background programs, so these numbers are not universal.
